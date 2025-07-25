@@ -1,0 +1,67 @@
+﻿@page "/gestion-empleados"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.JSInterop
+@using Planilla.Application.Interfaces
+@using Planilla.Application.DTOs
+@using Planilla.Domain.Entities
+@using AutoMapper
+
+@attribute [Authorize]
+@implements IDisposable // <-- CAMBIO: Usamos IDisposable en lugar de IAsyncDisposable
+@inject IJSRuntime JSRuntime // <-- CAMBIO: Inyectamos IJSRuntime directamente
+@inject IUnitOfWork UnitOfWork
+@inject IMapper Mapper
+@inject NavigationManager NavigationManager
+
+<PageTitle>Gestión de Empleados</PageTitle>
+
+@* Incluimos la hoja de estilos *@
+<link href="/react/react-app.css" rel="stylesheet" />
+
+<h1>Gestión de Empleados (UI con React)</h1>
+
+<div id="react-employee-management-root">
+    <p>Cargando interfaz de React...</p>
+</div>
+
+@* CAMBIO: Añadimos la etiqueta <script> para cargar el archivo directamente *@
+<script src="/react/react-app.js" defer></script>
+
+@code {
+    private DotNetObjectReference<GestionEmpleados>? dotNetObjectReference;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            dotNetObjectReference = DotNetObjectReference.Create(this);
+
+            var empleados = await UnitOfWork.Empleados.GetAllAsync();
+            var empleadosDto = Mapper.Map<IEnumerable<EmpleadoVerDto>>(empleados);
+
+            // CAMBIO: Llamamos a la función global directamente usando IJSRuntime
+            await JSRuntime.InvokeVoidAsync(
+                "window.renderReactApp",          // La ruta completa a la función en el objeto window
+                "react-employee-management-root",
+                empleadosDto,
+                dotNetObjectReference);
+        }
+    }
+
+    [JSInvokable]
+    public async Task HandleEmployeeCreation(EmpleadoCrearDto newEmployee)
+    {
+        var empleado = Mapper.Map<Empleado>(newEmployee);
+        empleado.FechaContratacion = DateTime.UtcNow;
+        await UnitOfWork.Empleados.AddAsync(empleado);
+        await UnitOfWork.CompleteAsync();
+        NavigationManager.NavigateTo("/gestion-empleados", forceLoad: true);
+    }
+
+    // CAMBIO: Usamos Dispose() para liberar la referencia del objeto .NET
+    public void Dispose()
+    {
+        dotNetObjectReference?.Dispose();
+    }
+}
