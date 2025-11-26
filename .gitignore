@@ -1,5 +1,21 @@
-﻿################################################################################
-# Este archivo .gitignore ha sido creado automáticamente por Microsoft(R) Visual Studio.
-################################################################################
+﻿# Visual Studio
+.vs/
+*.user
+*.suo
 
-/.vs/Planilla
+# Build artifacts
+**/bin/
+**/obj/
+**/Debug/
+**/Release/
+*.dll
+*.pdb
+*.cache
+
+# Node/Vite
+node_modules/
+dist/
+
+# Secrets
+appsettings.Development.json
+appsettings.*.local.json
