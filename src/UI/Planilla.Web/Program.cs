@@ -10,15 +10,16 @@ using Planilla.Application.Mappings;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- INICIO DE LA CONFIGURACIÓN DE SERVICIOS ---
+// --- INICIO DE LA CONFIGURACIï¿½N DE SERVICIOS ---
 
-// 1. LEER LA CADENA DE CONEXIÓN
+
+// 1. LEER LA CADENA DE CONEXIï¿½N
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
-// 2. REGISTRAR EL DBCONTEXT PARA INYECCIÓN DE DEPENDENCIAS
-//    Le decimos a la aplicación cómo crear instancias de nuestro ApplicationDbContext,
-//    configurándolo para que use SQL Server con la cadena de conexión.
+// 2. REGISTRAR EL DBCONTEXT PARA INYECCIï¿½N DE DEPENDENCIAS
+//    Le decimos a la aplicaciï¿½n cï¿½mo crear instancias de nuestro ApplicationDbContext,
+//    configurï¿½ndolo para que use SQL Server con la cadena de conexiï¿½n.
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 
@@ -34,13 +35,13 @@ builder.Services.AddIdentity<AppUser, IdentityRole>(options => {
 // 4. <<<---  AUTOMAPPER ---<<<
 builder.Services.AddAutoMapper(typeof(MappingProfile).Assembly);
 
-// 5. REGISTRAR SERVICIOS DE LA APLICACIÓN (UnitOfWork, etc.)
+// 5. REGISTRAR SERVICIOS DE LA APLICACIï¿½N (UnitOfWork, etc.)
 builder.Services.ConfigureApplicationServices();
 
-// --- FIN DE NUESTRA CONFIGURACIÓN PRINCIPAL ---
+// --- FIN DE NUESTRA CONFIGURACIï¿½N PRINCIPAL ---
 
 
-// Servicios estándar de Blazor y de la plantilla de Identity
+// Servicios estï¿½ndar de Blazor y de la plantilla de Identity
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
@@ -56,31 +57,31 @@ builder.Services.AddSingleton<IEmailSender<AppUser>, IdentityNoOpEmailSender>();
 
 var app = builder.Build();
 
-// --- CONFIGURACIÓN DEL PIPELINE DE PETICIONES HTTP (MIDDLEWARE) ---
-// El orden aquí es importante.
+// --- CONFIGURACIï¿½N DEL PIPELINE DE PETICIONES HTTP (MIDDLEWARE) ---
+// El orden aquï¿½ es importante.
 
 if (app.Environment.IsDevelopment())
 {
-    // En desarrollo, muestra páginas de error detalladas para la base de datos.
+    // En desarrollo, muestra pï¿½ginas de error detalladas para la base de datos.
     app.UseSwagger();
     app.UseSwaggerUI();
     app.UseMigrationsEndPoint();
 }
 else
 {
-    // En producción, usa un manejador de errores genérico y fuerza el uso de HTTPS.
+    // En producciï¿½n, usa un manejador de errores genï¿½rico y fuerza el uso de HTTPS.
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles(); // Permite servir archivos estáticos como CSS, JS e imágenes desde la carpeta wwwroot.
+app.UseStaticFiles(); // Permite servir archivos estï¿½ticos como CSS, JS e imï¿½genes desde la carpeta wwwroot.
 app.UseAntiforgery(); // Middleware de seguridad contra ataques CSRF.
 
-// Activa la autorización para que los atributos [Authorize] en los controladores funcionen.
+// Activa la autorizaciï¿½n para que los atributos [Authorize] en los controladores funcionen.
 app.UseAuthorization();
 
-// Mapea los componentes de la aplicación y los endpoints de Identity.
+// Mapea los componentes de la aplicaciï¿½n y los endpoints de Identity.
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
@@ -91,5 +92,5 @@ app.MapAdditionalIdentityEndpoints();
 // <<<---  PARA ACTIVAR LOS CONTROLADORES DE API ---<<<
 app.MapControllers();
 
-// Inicia y ejecuta la aplicación.
+// Inicia y ejecuta la aplicaciï¿½n.
 app.Run();
