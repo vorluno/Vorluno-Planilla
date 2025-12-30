@@ -1,0 +1,588 @@
+import React, { useState, useEffect } from 'react';
+import { useToast } from '../components/ToastContext';
+import ConfirmModal from '../components/ConfirmModal';
+
+const PosicionesPage = () => {
+    const [posiciones, setPosiciones] = useState([]);
+    const [departamentos, setDepartamentos] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [selectedDeptId, setSelectedDeptId] = useState('');
+    const [showModal, setShowModal] = useState(false);
+    const [editingPos, setEditingPos] = useState(null);
+    const [showConfirm, setShowConfirm] = useState(false);
+    const [posToDeactivate, setPosToDeactivate] = useState(null);
+    const { showToast } = useToast();
+
+    const [formData, setFormData] = useState({
+        codigo: '',
+        nombre: '',
+        descripcion: '',
+        departamentoId: '',
+        salarioMinimo: '',
+        salarioMaximo: '',
+        nivelRiesgo: 0
+    });
+
+    useEffect(() => {
+        fetchDepartamentos();
+    }, []);
+
+    useEffect(() => {
+        fetchPosiciones();
+    }, [selectedDeptId]);
+
+    const fetchPosiciones = async () => {
+        try {
+            setLoading(true);
+            const url = selectedDeptId
+                ? `/api/posiciones?departamentoId=${selectedDeptId}`
+                : '/api/posiciones';
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Error al cargar posiciones');
+            const data = await response.json();
+            setPosiciones(data);
+        } catch (error) {
+            showToast('Error al cargar posiciones', 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchDepartamentos = async () => {
+        try {
+            const response = await fetch('/api/departamentos');
+            if (!response.ok) throw new Error('Error al cargar departamentos');
+            const data = await response.json();
+            setDepartamentos(data.filter(d => d.estaActivo));
+        } catch (error) {
+            showToast('Error al cargar departamentos', 'error');
+        }
+    };
+
+    const handleOpenModal = (pos = null) => {
+        if (pos) {
+            setEditingPos(pos);
+            setFormData({
+                codigo: pos.codigo,
+                nombre: pos.nombre,
+                descripcion: pos.descripcion || '',
+                departamentoId: pos.departamentoId.toString(),
+                salarioMinimo: pos.salarioMinimo.toString(),
+                salarioMaximo: pos.salarioMaximo.toString(),
+                nivelRiesgo: pos.nivelRiesgo
+            });
+        } else {
+            setEditingPos(null);
+            setFormData({
+                codigo: '',
+                nombre: '',
+                descripcion: '',
+                departamentoId: selectedDeptId || '',
+                salarioMinimo: '',
+                salarioMaximo: '',
+                nivelRiesgo: 0
+            });
+        }
+        setShowModal(true);
+    };
+
+    const handleCloseModal = () => {
+        setShowModal(false);
+        setEditingPos(null);
+        setFormData({
+            codigo: '',
+            nombre: '',
+            descripcion: '',
+            departamentoId: '',
+            salarioMinimo: '',
+            salarioMaximo: '',
+            nivelRiesgo: 0
+        });
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        const salarioMin = parseFloat(formData.salarioMinimo);
+        const salarioMax = parseFloat(formData.salarioMaximo);
+
+        if (salarioMax < salarioMin) {
+            showToast('El salario máximo no puede ser menor que el mínimo', 'error');
+            return;
+        }
+
+        const payload = {
+            codigo: formData.codigo.trim(),
+            nombre: formData.nombre.trim(),
+            descripcion: formData.descripcion.trim() || null,
+            departamentoId: parseInt(formData.departamentoId),
+            salarioMinimo: salarioMin,
+            salarioMaximo: salarioMax,
+            nivelRiesgo: parseInt(formData.nivelRiesgo)
+        };
+
+        if (editingPos) {
+            payload.estaActivo = editingPos.estaActivo;
+        }
+
+        try {
+            const url = editingPos
+                ? `/api/posiciones/${editingPos.id}`
+                : '/api/posiciones';
+            const method = editingPos ? 'PUT' : 'POST';
+
+            const response = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'Error al guardar');
+            }
+
+            showToast(
+                editingPos ? 'Posición actualizada exitosamente' : 'Posición creada exitosamente',
+                'success'
+            );
+            handleCloseModal();
+            fetchPosiciones();
+        } catch (error) {
+            showToast(error.message, 'error');
+        }
+    };
+
+    const handleDeactivate = async () => {
+        try {
+            const response = await fetch(`/api/posiciones/${posToDeactivate.id}`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'Error al desactivar');
+            }
+
+            showToast('Posición desactivada exitosamente', 'success');
+            setShowConfirm(false);
+            setPosToDeactivate(null);
+            fetchPosiciones();
+        } catch (error) {
+            showToast(error.message, 'error');
+        }
+    };
+
+    const getNivelRiesgoBadge = (nivel) => {
+        const badges = {
+            0: { text: 'Bajo (0.56%)', className: 'bg-green-100 text-green-800' },
+            1: { text: 'Medio (2.50%)', className: 'bg-yellow-100 text-yellow-800' },
+            2: { text: 'Alto (5.39%)', className: 'bg-red-100 text-red-800' }
+        };
+        return badges[nivel] || badges[0];
+    };
+
+    const formatCurrency = (value) => {
+        return new Intl.NumberFormat('es-PA', {
+            style: 'currency',
+            currency: 'USD',
+            minimumFractionDigits: 2
+        }).format(value);
+    };
+
+    const filteredPosiciones = selectedDeptId
+        ? posiciones.filter(p => p.departamentoId === parseInt(selectedDeptId))
+        : posiciones;
+
+    const stats = {
+        total: posiciones.length,
+        enDept: selectedDeptId ? filteredPosiciones.length : 0,
+        avgSalario: posiciones.length > 0
+            ? posiciones.reduce((sum, p) => sum + ((p.salarioMinimo + p.salarioMaximo) / 2), 0) / posiciones.length
+            : 0,
+        porRiesgo: {
+            bajo: posiciones.filter(p => p.nivelRiesgo === 0).length,
+            medio: posiciones.filter(p => p.nivelRiesgo === 1).length,
+            alto: posiciones.filter(p => p.nivelRiesgo === 2).length
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-6">
+            {/* Filtro Departamento */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                <div className="flex items-center gap-4">
+                    <label className="text-sm font-medium text-gray-700">Filtrar por Departamento:</label>
+                    <select
+                        value={selectedDeptId}
+                        onChange={(e) => setSelectedDeptId(e.target.value)}
+                        className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                        <option value="">Todos los Departamentos</option>
+                        {departamentos.map(dept => (
+                            <option key={dept.id} value={dept.id}>{dept.nombre}</option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+
+            {/* Stats Cards */}
+            <div className="grid grid-cols-4 gap-6">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-medium text-gray-600">Total Posiciones</p>
+                            <p className="text-3xl font-bold text-gray-900 mt-2">{stats.total}</p>
+                        </div>
+                        <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                {selectedDeptId && (
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-gray-600">En Departamento</p>
+                                <p className="text-3xl font-bold text-blue-600 mt-2">{stats.enDept}</p>
+                            </div>
+                            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                                <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-medium text-gray-600">Salario Promedio</p>
+                            <p className="text-lg font-bold text-green-600 mt-2">{formatCurrency(stats.avgSalario)}</p>
+                        </div>
+                        <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                            <svg className="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div>
+                        <p className="text-sm font-medium text-gray-600 mb-3">Por Nivel de Riesgo</p>
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    Bajo
+                                </span>
+                                <span className="text-sm font-semibold">{stats.porRiesgo.bajo}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                    Medio
+                                </span>
+                                <span className="text-sm font-semibold">{stats.porRiesgo.medio}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                    Alto
+                                </span>
+                                <span className="text-sm font-semibold">{stats.porRiesgo.alto}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Actions Bar */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                <div className="flex items-center justify-end">
+                    <button
+                        onClick={() => handleOpenModal()}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
+                    >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        Nueva Posición
+                    </button>
+                </div>
+            </div>
+
+            {/* Table */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="w-full">
+                        <thead className="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Departamento</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Salario Mín</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Salario Máx</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nivel Riesgo</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {filteredPosiciones.length === 0 ? (
+                                <tr>
+                                    <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
+                                        <svg className="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                                        </svg>
+                                        <p className="text-sm">No hay posiciones para mostrar</p>
+                                    </td>
+                                </tr>
+                            ) : (
+                                filteredPosiciones.map((pos) => {
+                                    const riesgoBadge = getNivelRiesgoBadge(pos.nivelRiesgo);
+                                    return (
+                                        <tr key={pos.id} className="hover:bg-gray-50 transition">
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className="text-sm font-medium text-gray-900">{pos.codigo}</span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className="text-sm text-gray-900">{pos.nombre}</span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className="text-sm text-gray-600">{pos.departamentoNombre}</span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className="text-sm font-medium text-gray-900">{formatCurrency(pos.salarioMinimo)}</span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className="text-sm font-medium text-gray-900">{formatCurrency(pos.salarioMaximo)}</span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${riesgoBadge.className}`}>
+                                                    {riesgoBadge.text}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                                    pos.estaActivo
+                                                        ? 'bg-green-100 text-green-800'
+                                                        : 'bg-red-100 text-red-800'
+                                                }`}>
+                                                    {pos.estaActivo ? 'Activo' : 'Inactivo'}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => handleOpenModal(pos)}
+                                                        className="text-blue-600 hover:text-blue-800 transition"
+                                                        title="Editar"
+                                                    >
+                                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                        </svg>
+                                                    </button>
+                                                    {pos.estaActivo && (
+                                                        <button
+                                                            onClick={() => {
+                                                                setPosToDeactivate(pos);
+                                                                setShowConfirm(true);
+                                                            }}
+                                                            className="text-red-600 hover:text-red-800 transition"
+                                                            title="Desactivar"
+                                                        >
+                                                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                            </svg>
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {/* Modal */}
+            {showModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+                        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+                            <h3 className="text-lg font-bold text-gray-900">
+                                {editingPos ? 'Editar Posición' : 'Nueva Posición'}
+                            </h3>
+                            <button
+                                onClick={handleCloseModal}
+                                className="text-gray-400 hover:text-gray-600 transition"
+                            >
+                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Código <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    required
+                                    maxLength={20}
+                                    value={formData.codigo}
+                                    onChange={(e) => setFormData({ ...formData, codigo: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    placeholder="Ej: GER-VEN"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Nombre <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    required
+                                    maxLength={100}
+                                    value={formData.nombre}
+                                    onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    placeholder="Ej: Gerente de Ventas"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Departamento <span className="text-red-500">*</span>
+                                </label>
+                                <select
+                                    required
+                                    value={formData.departamentoId}
+                                    onChange={(e) => setFormData({ ...formData, departamentoId: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                >
+                                    <option value="">Seleccione un departamento</option>
+                                    {departamentos.map(dept => (
+                                        <option key={dept.id} value={dept.id}>{dept.nombre}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Salario Mínimo <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="number"
+                                        required
+                                        min="0"
+                                        step="0.01"
+                                        value={formData.salarioMinimo}
+                                        onChange={(e) => setFormData({ ...formData, salarioMinimo: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        placeholder="0.00"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Salario Máximo <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="number"
+                                        required
+                                        min="0"
+                                        step="0.01"
+                                        value={formData.salarioMaximo}
+                                        onChange={(e) => setFormData({ ...formData, salarioMaximo: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        placeholder="0.00"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Nivel de Riesgo <span className="text-red-500">*</span>
+                                </label>
+                                <select
+                                    required
+                                    value={formData.nivelRiesgo}
+                                    onChange={(e) => setFormData({ ...formData, nivelRiesgo: parseInt(e.target.value) })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                >
+                                    <option value={0}>Bajo (0.56%)</option>
+                                    <option value={1}>Medio (2.50%)</option>
+                                    <option value={2}>Alto (5.39%)</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Descripción
+                                </label>
+                                <textarea
+                                    rows={3}
+                                    maxLength={500}
+                                    value={formData.descripcion}
+                                    onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    placeholder="Descripción opcional de la posición..."
+                                />
+                            </div>
+
+                            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                                <button
+                                    type="button"
+                                    onClick={handleCloseModal}
+                                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                                >
+                                    {editingPos ? 'Actualizar' : 'Crear'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Confirm Modal */}
+            <ConfirmModal
+                isOpen={showConfirm}
+                onClose={() => {
+                    setShowConfirm(false);
+                    setPosToDeactivate(null);
+                }}
+                onConfirm={handleDeactivate}
+                title="Desactivar Posición"
+                message={`¿Está seguro que desea desactivar la posición "${posToDeactivate?.nombre}"?`}
+                confirmText="Desactivar"
+                confirmColor="red"
+            />
+        </div>
+    );
+};
+
+export default PosicionesPage;

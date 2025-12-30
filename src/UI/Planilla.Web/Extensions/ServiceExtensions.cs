@@ -1,7 +1,9 @@
-﻿using Planilla.Application.Interfaces;
+﻿// RISK: Removing ReactJsInterop reference - Blazor interop no longer needed for Web API + React SPA
+using Planilla.Application.Interfaces;
 using Planilla.Application.Services;
 using Planilla.Infrastructure.Repositories;
-using Planilla.Web.Interop;
+using Planilla.Infrastructure.Services;
+using Planilla.Web.Services;
 
 namespace Planilla.Web.Extensions
 {
@@ -25,8 +27,30 @@ namespace Planilla.Web.Extensions
             // REGISTRAR NUESTRO NUEVO SERVICIO
             services.AddScoped<PlanillaService>();
 
-            // REGISTRAR NUESTRO SERVICIO DE INTEROPERABILIDAD CON JAVASCRIPT
-            services.AddScoped<ReactJsInterop>();
+            // Phase A: Proveedor de configuración de planilla (tasas CSS, SE, ISR)
+            services.AddScoped<IPayrollConfigProvider, PayrollConfigProvider>();
+
+            // Phase B: Servicios de cálculo de planilla (CSS, SE, ISR)
+            services.AddScoped<CssCalculationServicePortable>();
+            services.AddScoped<EducationalInsuranceServicePortable>();
+            services.AddScoped<IncomeTaxCalculationServicePortable>();
+
+            // Phase D: Workflow de planilla y orquestador
+            services.AddScoped<PayrollStateMachine>();
+            services.AddScoped<PayrollCalculationOrchestratorPortable>();
+            services.AddScoped<PayrollProcessingService>();
+
+            // Phase E: Multi-tenancy y auditoría
+            services.AddScoped<ICurrentUserService, CurrentUserService>();
+
+            // Phase F: Asistencia (horas extra, ausencias, vacaciones)
+            services.AddScoped<AsistenciaCalculationService>();
+
+            // Phase G: Reportes y exportación
+            services.AddScoped<ReportesService>();
+            services.AddScoped<ExportacionService>();
+
+            // TODO: React SPA will communicate via REST API endpoints, no server-side interop needed
         }
     }
 }

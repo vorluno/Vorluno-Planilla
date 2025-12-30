@@ -1,19 +1,22 @@
+// RISK: Adding React Router for client-side navigation
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import './index.css';
 
-window.renderReactApp = (containerId, initialData, dotNetHelper) => {
-    const container = document.getElementById(containerId);
+// Standalone React SPA initialization with Router
+const container = document.getElementById('root');
 
-    if (container) {
-        const root = ReactDOM.createRoot(container);
-        root.render(
-            <React.StrictMode>
-                <App initialData={initialData} dotNetHelper={dotNetHelper} />
-            </React.StrictMode>
-        );
-    } else {
-        console.error(`Contenedor no encontrado: #${containerId}`);
-    }
-};
+if (container) {
+    const root = ReactDOM.createRoot(container);
+    root.render(
+        <React.StrictMode>
+            <BrowserRouter basename="/react">
+                <App />
+            </BrowserRouter>
+        </React.StrictMode>
+    );
+} else {
+    console.error('Root container not found');
+}

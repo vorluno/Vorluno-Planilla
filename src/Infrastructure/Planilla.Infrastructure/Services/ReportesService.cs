@@ -1,0 +1,272 @@
+// ====================================================================
+// Planilla - ReportesService
+// Creado: 2025-12-28
+// Descripción: Servicio para generar reportes de planilla
+// (CSS, Seguro Educativo, ISR, Planilla Detallada)
+// ====================================================================
+
+using Microsoft.EntityFrameworkCore;
+using Planilla.Application.DTOs.Reportes;
+using Planilla.Domain.Enums;
+using Planilla.Infrastructure.Data;
+
+namespace Planilla.Infrastructure.Services;
+
+/// <summary>
+/// Servicio para generar diferentes tipos de reportes de planilla
+/// </summary>
+public class ReportesService
+{
+    private readonly ApplicationDbContext _context;
+
+    public ReportesService(ApplicationDbContext context)
+    {
+        _context = context ?? throw new ArgumentNullException(nameof(context));
+    }
+
+    /// <summary>
+    /// Genera el reporte de CSS (Caja de Seguro Social)
+    /// </summary>
+    public async Task<ReporteCssDto> GenerarReporteCss(int planillaId)
+    {
+        var planilla = await _context.PayrollHeaders
+            .Include(p => p.Details)
+                .ThenInclude(d => d.Empleado)
+            .FirstOrDefaultAsync(p => p.Id == planillaId);
+
+        if (planilla == null)
+            throw new InvalidOperationException($"Planilla {planillaId} no encontrada");
+
+        var empleados = planilla.Details
+            .Where(d => d.Empleado != null)
+            .Select(d => new EmpleadoCssDto(
+                d.Empleado!.NumeroIdentificacion,
+                $"{d.Empleado.Nombre} {d.Empleado.Apellido}",
+                d.GrossPay,
+                Math.Min(d.GrossPay, 1500m), // Base CSS topeada
+                d.CssEmployee,
+                d.CssEmployer,
+                d.RiskContribution,
+                d.CssEmployee + d.CssEmployer + d.RiskContribution
+            ))
+            .OrderBy(e => e.NombreCompleto)
+            .ToList();
+
+        var totales = new TotalesCssDto(
+            empleados.Sum(e => e.SalarioBruto),
+            empleados.Sum(e => e.CssEmpleado),
+            empleados.Sum(e => e.CssPatrono),
+            empleados.Sum(e => e.RiesgoProfesional),
+            empleados.Sum(e => e.TotalCss)
+        );
+
+        return new ReporteCssDto(
+            "Mi Empresa S.A.", // TODO: Obtener de configuración
+            "1234567-8-123456", // TODO: Obtener de configuración
+            $"{planilla.PeriodStartDate:dd/MM/yyyy} - {planilla.PeriodEndDate:dd/MM/yyyy}",
+            DateTime.Now,
+            empleados,
+            totales
+        );
+    }
+
+    /// <summary>
+    /// Genera el reporte de Seguro Educativo
+    /// </summary>
+    public async Task<ReporteSeDto> GenerarReporteSe(int planillaId)
+    {
+        var planilla = await _context.PayrollHeaders
+            .Include(p => p.Details)
+                .ThenInclude(d => d.Empleado)
+            .FirstOrDefaultAsync(p => p.Id == planillaId);
+
+        if (planilla == null)
+            throw new InvalidOperationException($"Planilla {planillaId} no encontrada");
+
+        var empleados = planilla.Details
+            .Where(d => d.Empleado != null)
+            .Select(d => new EmpleadoSeDto(
+                d.Empleado!.NumeroIdentificacion,
+                $"{d.Empleado.Nombre} {d.Empleado.Apellido}",
+                d.GrossPay,
+                d.EducationalInsuranceEmployee,
+                d.EducationalInsuranceEmployer,
+                d.EducationalInsuranceEmployee + d.EducationalInsuranceEmployer
+            ))
+            .OrderBy(e => e.NombreCompleto)
+            .ToList();
+
+        var totales = new TotalesSeDto(
+            empleados.Sum(e => e.SalarioBruto),
+            empleados.Sum(e => e.SeEmpleado),
+            empleados.Sum(e => e.SePatrono),
+            empleados.Sum(e => e.TotalSe)
+        );
+
+        return new ReporteSeDto(
+            "Mi Empresa S.A.", // TODO: Obtener de configuración
+            "1234567-8-123456", // TODO: Obtener de configuración
+            $"{planilla.PeriodStartDate:dd/MM/yyyy} - {planilla.PeriodEndDate:dd/MM/yyyy}",
+            DateTime.Now,
+            empleados,
+            totales
+        );
+    }
+
+    /// <summary>
+    /// Genera el reporte de ISR (Impuesto Sobre la Renta)
+    /// </summary>
+    public async Task<ReporteIsrDto> GenerarReporteIsr(int planillaId)
+    {
+        var planilla = await _context.PayrollHeaders
+            .Include(p => p.Details)
+                .ThenInclude(d => d.Empleado)
+            .FirstOrDefaultAsync(p => p.Id == planillaId);
+
+        if (planilla == null)
+            throw new InvalidOperationException($"Planilla {planillaId} no encontrada");
+
+        var empleados = planilla.Details
+            .Where(d => d.Empleado != null)
+            .Select(d => {
+                // Proyección anual (asumiendo quincenal: 24 períodos)
+                decimal ingresoAnualProyectado = d.GrossPay * 24;
+                int dependientes = 0; // TODO: Obtener del empleado
+                decimal deduccionDependientes = dependientes * 800m; // $800 por dependiente
+
+                return new EmpleadoIsrDto(
+                    d.Empleado!.NumeroIdentificacion,
+                    $"{d.Empleado.Nombre} {d.Empleado.Apellido}",
+                    ingresoAnualProyectado,
+                    dependientes,
+                    deduccionDependientes,
+                    Math.Max(0, ingresoAnualProyectado - deduccionDependientes),
+                    d.IncomeTax * 24, // ISR anual proyectado
+                    d.IncomeTax
+                );
+            })
+            .OrderBy(e => e.NombreCompleto)
+            .ToList();
+
+        var totales = new TotalesIsrDto(
+            empleados.Sum(e => e.IngresoAnualProyectado),
+            empleados.Sum(e => e.DeduccionDependientes),
+            empleados.Sum(e => e.IsrAnual),
+            empleados.Sum(e => e.IsrPeriodo)
+        );
+
+        return new ReporteIsrDto(
+            "Mi Empresa S.A.", // TODO: Obtener de configuración
+            "1234567-8-123456", // TODO: Obtener de configuración
+            $"{planilla.PeriodStartDate:dd/MM/yyyy} - {planilla.PeriodEndDate:dd/MM/yyyy}",
+            planilla.PeriodStartDate.Year,
+            DateTime.Now,
+            empleados,
+            totales
+        );
+    }
+
+    /// <summary>
+    /// Genera el reporte de planilla detallado completo
+    /// </summary>
+    public async Task<ReportePlanillaDetalladoDto> GenerarReportePlanillaDetallada(int planillaId)
+    {
+        var planilla = await _context.PayrollHeaders
+            .Include(p => p.Details)
+                .ThenInclude(d => d.Empleado)
+                    .ThenInclude(e => e!.Departamento)
+            .Include(p => p.Details)
+                .ThenInclude(d => d.Empleado)
+                    .ThenInclude(e => e!.Posicion)
+            .FirstOrDefaultAsync(p => p.Id == planillaId);
+
+        if (planilla == null)
+            throw new InvalidOperationException($"Planilla {planillaId} no encontrada");
+
+        var empleados = planilla.Details
+            .Where(d => d.Empleado != null)
+            .Select(d => new EmpleadoPlanillaDetalladoDto(
+                d.Empleado!.NumeroIdentificacion,
+                $"{d.Empleado.Nombre} {d.Empleado.Apellido}",
+                d.Empleado.Departamento?.Nombre,
+                d.Empleado.Posicion?.Nombre,
+
+                // Ingresos
+                d.BaseSalary,
+                d.MontoHorasExtra,
+                d.Bonuses,
+                d.GrossPay,
+
+                // Deducciones
+                d.CssEmployee,
+                d.EducationalInsuranceEmployee,
+                d.IncomeTax,
+                d.Prestamos,
+                d.Anticipos,
+                d.DeduccionesFijas,
+                d.MontoDescuentoAusencias,
+                d.OtherDeductions,
+                d.TotalDeductions,
+
+                // Neto
+                d.NetPay,
+
+                // Costos patronales
+                d.CssEmployer,
+                d.EducationalInsuranceEmployer,
+                d.RiskContribution,
+                d.EmployerCost
+            ))
+            .OrderBy(e => e.Departamento)
+            .ThenBy(e => e.NombreCompleto)
+            .ToList();
+
+        // Resumen por departamento
+        var resumenPorDepartamento = empleados
+            .Where(e => !string.IsNullOrEmpty(e.Departamento))
+            .GroupBy(e => e.Departamento!)
+            .Select(g => new ResumenDepartamentoDto(
+                g.Key,
+                g.Count(),
+                g.Sum(e => e.SalarioBruto),
+                g.Sum(e => e.TotalDeducciones),
+                g.Sum(e => e.SalarioNeto),
+                g.Sum(e => e.CostoPatronal)
+            ))
+            .OrderBy(r => r.NombreDepartamento)
+            .ToList();
+
+        var estadoTexto = planilla.Status switch
+        {
+            PayrollStatus.Draft => "Borrador",
+            PayrollStatus.Calculated => "Calculada",
+            PayrollStatus.Approved => "Aprobada",
+            PayrollStatus.Paid => "Pagada",
+            _ => "Desconocido"
+        };
+
+        return new ReportePlanillaDetalladoDto(
+            // Encabezado
+            "Mi Empresa S.A.", // TODO: Obtener de configuración
+            "1234567-8-123456", // TODO: Obtener de configuración
+            $"PL-{planilla.Id:D6}",
+            $"{planilla.PeriodStartDate:dd/MM/yyyy} - {planilla.PeriodEndDate:dd/MM/yyyy}",
+            planilla.PayDate,
+            estadoTexto,
+            DateTime.Now,
+
+            // Resumen
+            empleados.Count,
+            empleados.Sum(e => e.SalarioBruto),
+            empleados.Sum(e => e.TotalDeducciones),
+            empleados.Sum(e => e.SalarioNeto),
+            empleados.Sum(e => e.CostoPatronal),
+
+            // Detalle
+            empleados,
+
+            // Por departamento
+            resumenPorDepartamento.Any() ? resumenPorDepartamento : null
+        );
+    }
+}

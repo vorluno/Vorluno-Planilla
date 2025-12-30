@@ -155,6 +155,66 @@ namespace Planilla.Infrastructure.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("Planilla.Domain.Entities.Anticipo", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AprobadoPor")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("CompanyId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("EmpleadoId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Estado")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("FechaAprobacion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("FechaDescuento")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("FechaSolicitud")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("Monto")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Motivo")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Observaciones")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("PlanillaId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmpleadoId", "Estado")
+                        .HasDatabaseName("IX_Anticipo_EmpleadoId_Estado");
+
+                    b.HasIndex("FechaDescuento", "Estado")
+                        .HasDatabaseName("IX_Anticipo_FechaDescuento_Estado");
+
+                    b.ToTable("Anticipos");
+                });
+
             modelBuilder.Entity("Planilla.Domain.Entities.AppUser", b =>
                 {
                     b.Property<string>("Id")
@@ -223,6 +283,185 @@ namespace Planilla.Infrastructure.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
+            modelBuilder.Entity("Planilla.Domain.Entities.Ausencia", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("AfectaSalario")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("AprobadoPor")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("CompanyId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("DiasAusencia")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<string>("DocumentoReferencia")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("EmpleadoId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("FechaFin")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("FechaInicio")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal?>("MontoDescontado")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Motivo")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Observaciones")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("PlanillaDetailId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("TieneJustificacion")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("TipoAusencia")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmpleadoId", "FechaInicio")
+                        .HasDatabaseName("IX_Ausencia_EmpleadoId_FechaInicio");
+
+                    b.ToTable("Ausencias");
+                });
+
+            modelBuilder.Entity("Planilla.Domain.Entities.DeduccionFija", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CompanyId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Descripcion")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("EmpleadoId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("EsPorcentaje")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("EstaActivo")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("FechaFin")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("FechaInicio")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("Monto")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Observaciones")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal?>("Porcentaje")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<int>("Prioridad")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Referencia")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("TipoDeduccion")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TipoDeduccion")
+                        .HasDatabaseName("IX_DeduccionFija_TipoDeduccion");
+
+                    b.HasIndex("EmpleadoId", "EstaActivo")
+                        .HasDatabaseName("IX_DeduccionFija_EmpleadoId_EstaActivo");
+
+                    b.ToTable("DeduccionesFijas");
+                });
+
+            modelBuilder.Entity("Planilla.Domain.Entities.Departamento", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Codigo")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("CompanyId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Descripcion")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("EstaActivo")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("ManagerId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ManagerId");
+
+                    b.HasIndex("CompanyId", "Codigo")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Departamento_CompanyId_Codigo");
+
+                    b.ToTable("Departamentos");
+                });
+
             modelBuilder.Entity("Planilla.Domain.Entities.Empleado", b =>
                 {
                     b.Property<int>("Id")
@@ -236,11 +475,35 @@ namespace Planilla.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<decimal>("AverageSalaryLast10Years")
+                        .HasColumnType("decimal(18, 2)");
+
+                    b.Property<int>("CompanyId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("CssRiskPercentage")
+                        .HasColumnType("decimal(5, 2)");
+
+                    b.Property<int?>("DepartamentoId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Dependents")
+                        .HasColumnType("int");
+
                     b.Property<bool>("EstaActivo")
                         .HasColumnType("bit");
 
                     b.Property<DateTime>("FechaContratacion")
                         .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsSubjectToCss")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsSubjectToEducationalInsurance")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsSubjectToIncomeTax")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Nombre")
                         .IsRequired()
@@ -252,15 +515,611 @@ namespace Planilla.Infrastructure.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<string>("PayFrequency")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int?>("PosicionId")
+                        .HasColumnType("int");
+
                     b.Property<decimal>("SalarioBase")
                         .HasColumnType("decimal(18, 2)");
 
+                    b.Property<int>("YearsCotized")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("DepartamentoId");
 
                     b.HasIndex("NumeroIdentificacion")
                         .IsUnique();
 
+                    b.HasIndex("PosicionId");
+
                     b.ToTable("Empleados");
+                });
+
+            modelBuilder.Entity("Planilla.Domain.Entities.HoraExtra", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AprobadoPor")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("CantidadHoras")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<int>("CompanyId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("EmpleadoId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("EstaAprobada")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal>("FactorMultiplicador")
+                        .HasPrecision(4, 2)
+                        .HasColumnType("decimal(4,2)");
+
+                    b.Property<DateTime>("Fecha")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("FechaAprobacion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<TimeSpan>("HoraFin")
+                        .HasColumnType("time");
+
+                    b.Property<TimeSpan>("HoraInicio")
+                        .HasColumnType("time");
+
+                    b.Property<decimal?>("MontoCalculado")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Motivo")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Observaciones")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("PlanillaDetailId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TipoHoraExtra")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmpleadoId", "Fecha")
+                        .HasDatabaseName("IX_HoraExtra_EmpleadoId_Fecha");
+
+                    b.HasIndex("EstaAprobada", "Fecha")
+                        .HasDatabaseName("IX_HoraExtra_EstaAprobada_Fecha");
+
+                    b.ToTable("HorasExtra");
+                });
+
+            modelBuilder.Entity("Planilla.Domain.Entities.PagoPrestamo", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("FechaPago")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("MontoPagado")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("NumeroCuota")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Observaciones")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("PlanillaDetailId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PrestamoId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("SaldoAnterior")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("SaldoNuevo")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PrestamoId")
+                        .HasDatabaseName("IX_PagoPrestamo_PrestamoId");
+
+                    b.ToTable("PagosPrestamos");
+                });
+
+            modelBuilder.Entity("Planilla.Domain.Entities.PayrollDetail", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Anticipos")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("BaseSalary")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("Bonuses")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("Commissions")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("CssEmployee")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("CssEmployer")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("DeduccionesFijas")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("DiasAusenciaInjustificada")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal>("DiasVacaciones")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal>("EducationalInsuranceEmployee")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("EducationalInsuranceEmployer")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("EmpleadoId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("EmployerCost")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("GrossPay")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("HorasExtraDiurnas")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal>("HorasExtraDomingoFeriado")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal>("HorasExtraNocturnas")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal>("IncomeTax")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("MontoDescuentoAusencias")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("MontoHorasExtra")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("MontoVacaciones")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("NetPay")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("OtherDeductions")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("OtrasDeduccionesDetalle")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("OvertimePay")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("PayrollHeaderId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Prestamos")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("RiskContribution")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalDeductions")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmpleadoId");
+
+                    b.HasIndex("PayrollHeaderId", "EmpleadoId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_PayrollDetail_PayrollHeaderId_EmpleadoId");
+
+                    b.ToTable("PayrollDetails");
+                });
+
+            modelBuilder.Entity("Planilla.Domain.Entities.PayrollHeader", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ApprovedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<DateTime?>("ApprovedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CompanyId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsApproved")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsPaid")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("PaidDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("PayDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PaymentReference")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("PayrollNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("PeriodEndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("PeriodStartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ProcessedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<DateTime?>("ProcessedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TotalDeductions")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalEmployerCost")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalGrossPay")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalNetPay")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId", "PayrollNumber")
+                        .IsUnique()
+                        .HasDatabaseName("IX_PayrollHeader_CompanyId_PayrollNumber");
+
+                    b.HasIndex("CompanyId", "Status")
+                        .HasDatabaseName("IX_PayrollHeader_CompanyId_Status");
+
+                    b.ToTable("PayrollHeaders");
+                });
+
+            modelBuilder.Entity("Planilla.Domain.Entities.PayrollTaxConfiguration", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CompanyId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("CssEmployeeRate")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal>("CssEmployerBaseRate")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal>("CssHighMinAvgSalary")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("CssHighMinYears")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("CssIntermediateMinAvgSalary")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("CssIntermediateMinYears")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("CssMaxContributionBaseHigh")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("CssMaxContributionBaseIntermediate")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("CssMaxContributionBaseStandard")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("CssRiskRateHigh")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal>("CssRiskRateLow")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal>("CssRiskRateMedium")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal>("DependentDeductionAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<decimal>("EducationalInsuranceEmployeeRate")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal>("EducationalInsuranceEmployerRate")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<DateTime?>("EffectiveEndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("EffectiveStartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("MaxDependents")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId", "EffectiveStartDate")
+                        .HasDatabaseName("IX_PayrollTaxConfiguration_CompanyId_EffectiveStartDate");
+
+                    b.ToTable("PayrollTaxConfigurations");
+                });
+
+            modelBuilder.Entity("Planilla.Domain.Entities.Posicion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Codigo")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("CompanyId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("DepartamentoId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Descripcion")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("EstaActivo")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("NivelRiesgo")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("SalarioMaximo")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("SalarioMinimo")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DepartamentoId");
+
+                    b.HasIndex("CompanyId", "Codigo")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Posicion_CompanyId_Codigo");
+
+                    b.ToTable("Posiciones");
+                });
+
+            modelBuilder.Entity("Planilla.Domain.Entities.Prestamo", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CompanyId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("CuotaMensual")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("CuotasPagadas")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Descripcion")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("EmpleadoId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Estado")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("FechaFin")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("FechaInicio")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("MontoOriginal")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("MontoPendiente")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("NumeroCuotas")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Observaciones")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Referencia")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("TasaInteres")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmpleadoId", "Estado")
+                        .HasDatabaseName("IX_Prestamo_EmpleadoId_Estado");
+
+                    b.ToTable("Prestamos");
                 });
 
             modelBuilder.Entity("Planilla.Domain.Entities.ReciboDeSueldo", b =>
@@ -297,6 +1156,184 @@ namespace Planilla.Infrastructure.Migrations
                     b.HasIndex("EmpleadoId");
 
                     b.ToTable("RecibosDeSueldo");
+                });
+
+            modelBuilder.Entity("Planilla.Domain.Entities.SaldoVacaciones", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CompanyId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("DiasAcumulados")
+                        .HasPrecision(6, 2)
+                        .HasColumnType("decimal(6,2)");
+
+                    b.Property<decimal>("DiasDisponibles")
+                        .HasPrecision(6, 2)
+                        .HasColumnType("decimal(6,2)");
+
+                    b.Property<decimal>("DiasTomados")
+                        .HasPrecision(6, 2)
+                        .HasColumnType("decimal(6,2)");
+
+                    b.Property<int>("EmpleadoId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("PeriodoFin")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("PeriodoInicio")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("UltimaActualizacion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmpleadoId");
+
+                    b.HasIndex("CompanyId", "EmpleadoId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_SaldoVacaciones_CompanyId_EmpleadoId");
+
+                    b.ToTable("SaldosVacaciones");
+                });
+
+            modelBuilder.Entity("Planilla.Domain.Entities.SolicitudVacaciones", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AprobadoPor")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("CompanyId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("DiasProporcionales")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<int>("DiasVacaciones")
+                        .HasColumnType("int");
+
+                    b.Property<int>("EmpleadoId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Estado")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("FechaAprobacion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("FechaFin")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("FechaInicio")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("FechaRechazo")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("FechaSolicitud")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("MotivoRechazo")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Observaciones")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("PlanillaDetailId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RechazadoPor")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmpleadoId", "Estado")
+                        .HasDatabaseName("IX_SolicitudVacaciones_EmpleadoId_Estado");
+
+                    b.HasIndex("FechaInicio", "FechaFin")
+                        .HasDatabaseName("IX_SolicitudVacaciones_Fechas");
+
+                    b.ToTable("SolicitudesVacaciones");
+                });
+
+            modelBuilder.Entity("Planilla.Domain.Entities.TaxBracket", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CompanyId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<decimal>("FixedAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal?>("MaxIncome")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("MinIncome")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Rate")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId", "Year")
+                        .HasDatabaseName("IX_TaxBracket_CompanyId_Year");
+
+                    b.ToTable("TaxBrackets");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -350,6 +1387,129 @@ namespace Planilla.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Planilla.Domain.Entities.Anticipo", b =>
+                {
+                    b.HasOne("Planilla.Domain.Entities.Empleado", "Empleado")
+                        .WithMany()
+                        .HasForeignKey("EmpleadoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Empleado");
+                });
+
+            modelBuilder.Entity("Planilla.Domain.Entities.Ausencia", b =>
+                {
+                    b.HasOne("Planilla.Domain.Entities.Empleado", "Empleado")
+                        .WithMany()
+                        .HasForeignKey("EmpleadoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Empleado");
+                });
+
+            modelBuilder.Entity("Planilla.Domain.Entities.DeduccionFija", b =>
+                {
+                    b.HasOne("Planilla.Domain.Entities.Empleado", "Empleado")
+                        .WithMany()
+                        .HasForeignKey("EmpleadoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Empleado");
+                });
+
+            modelBuilder.Entity("Planilla.Domain.Entities.Departamento", b =>
+                {
+                    b.HasOne("Planilla.Domain.Entities.Empleado", "Manager")
+                        .WithMany()
+                        .HasForeignKey("ManagerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Manager");
+                });
+
+            modelBuilder.Entity("Planilla.Domain.Entities.Empleado", b =>
+                {
+                    b.HasOne("Planilla.Domain.Entities.Departamento", "Departamento")
+                        .WithMany("Empleados")
+                        .HasForeignKey("DepartamentoId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Planilla.Domain.Entities.Posicion", "Posicion")
+                        .WithMany("Empleados")
+                        .HasForeignKey("PosicionId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Departamento");
+
+                    b.Navigation("Posicion");
+                });
+
+            modelBuilder.Entity("Planilla.Domain.Entities.HoraExtra", b =>
+                {
+                    b.HasOne("Planilla.Domain.Entities.Empleado", "Empleado")
+                        .WithMany()
+                        .HasForeignKey("EmpleadoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Empleado");
+                });
+
+            modelBuilder.Entity("Planilla.Domain.Entities.PagoPrestamo", b =>
+                {
+                    b.HasOne("Planilla.Domain.Entities.Prestamo", "Prestamo")
+                        .WithMany("PagosPrestamo")
+                        .HasForeignKey("PrestamoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Prestamo");
+                });
+
+            modelBuilder.Entity("Planilla.Domain.Entities.PayrollDetail", b =>
+                {
+                    b.HasOne("Planilla.Domain.Entities.Empleado", "Empleado")
+                        .WithMany()
+                        .HasForeignKey("EmpleadoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Planilla.Domain.Entities.PayrollHeader", "PayrollHeader")
+                        .WithMany("Details")
+                        .HasForeignKey("PayrollHeaderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Empleado");
+
+                    b.Navigation("PayrollHeader");
+                });
+
+            modelBuilder.Entity("Planilla.Domain.Entities.Posicion", b =>
+                {
+                    b.HasOne("Planilla.Domain.Entities.Departamento", "Departamento")
+                        .WithMany("Posiciones")
+                        .HasForeignKey("DepartamentoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Departamento");
+                });
+
+            modelBuilder.Entity("Planilla.Domain.Entities.Prestamo", b =>
+                {
+                    b.HasOne("Planilla.Domain.Entities.Empleado", "Empleado")
+                        .WithMany()
+                        .HasForeignKey("EmpleadoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Empleado");
+                });
+
             modelBuilder.Entity("Planilla.Domain.Entities.ReciboDeSueldo", b =>
                 {
                     b.HasOne("Planilla.Domain.Entities.Empleado", "Empleado")
@@ -361,9 +1521,53 @@ namespace Planilla.Infrastructure.Migrations
                     b.Navigation("Empleado");
                 });
 
+            modelBuilder.Entity("Planilla.Domain.Entities.SaldoVacaciones", b =>
+                {
+                    b.HasOne("Planilla.Domain.Entities.Empleado", "Empleado")
+                        .WithMany()
+                        .HasForeignKey("EmpleadoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Empleado");
+                });
+
+            modelBuilder.Entity("Planilla.Domain.Entities.SolicitudVacaciones", b =>
+                {
+                    b.HasOne("Planilla.Domain.Entities.Empleado", "Empleado")
+                        .WithMany()
+                        .HasForeignKey("EmpleadoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Empleado");
+                });
+
+            modelBuilder.Entity("Planilla.Domain.Entities.Departamento", b =>
+                {
+                    b.Navigation("Empleados");
+
+                    b.Navigation("Posiciones");
+                });
+
             modelBuilder.Entity("Planilla.Domain.Entities.Empleado", b =>
                 {
                     b.Navigation("RecibosDeSueldo");
+                });
+
+            modelBuilder.Entity("Planilla.Domain.Entities.PayrollHeader", b =>
+                {
+                    b.Navigation("Details");
+                });
+
+            modelBuilder.Entity("Planilla.Domain.Entities.Posicion", b =>
+                {
+                    b.Navigation("Empleados");
+                });
+
+            modelBuilder.Entity("Planilla.Domain.Entities.Prestamo", b =>
+                {
+                    b.Navigation("PagosPrestamo");
                 });
 #pragma warning restore 612, 618
         }

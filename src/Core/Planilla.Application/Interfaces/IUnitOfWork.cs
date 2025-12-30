@@ -23,6 +23,13 @@ namespace Planilla.Application.Interfaces
         // Aquí irían otros repositorios, como IReciboDeSueldoRepository
 
         /// <summary>
+        /// Obtiene una instancia de repositorio genérico para cualquier entidad.
+        /// </summary>
+        /// <typeparam name="T">El tipo de entidad.</typeparam>
+        /// <returns>Una instancia del repositorio para la entidad especificada.</returns>
+        IRepository<T> Repository<T>() where T : class;
+
+        /// <summary>
         /// Confirma y guarda todos los cambios realizados en el contexto de la base de datos de forma asíncrona.
         /// </summary>
         /// <returns>

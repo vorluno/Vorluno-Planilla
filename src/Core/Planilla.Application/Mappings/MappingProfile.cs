@@ -14,7 +14,9 @@ namespace Planilla.Application.Mappings
         public MappingProfile()
         {
             // Mapeo de Entidad a DTO (para operaciones de lectura)
-            CreateMap<Empleado, EmpleadoVerDto>();
+            CreateMap<Empleado, EmpleadoVerDto>()
+                .ForMember(dest => dest.DepartamentoNombre, opt => opt.MapFrom(src => src.Departamento != null ? src.Departamento.Nombre : null))
+                .ForMember(dest => dest.PosicionNombre, opt => opt.MapFrom(src => src.Posicion != null ? src.Posicion.Nombre : null));
 
             // Mapeo de DTO a Entidad (para operaciones de escritura/actualización)
             CreateMap<EmpleadoCrearDto, Empleado>();

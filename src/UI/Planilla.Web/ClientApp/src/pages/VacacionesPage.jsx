@@ -1,0 +1,675 @@
+import React, { useState, useEffect } from 'react';
+import { useToast } from '../components/ToastContext';
+
+const VacacionesPage = () => {
+    const { showToast } = useToast();
+
+    // State management
+    const [vacaciones, setVacaciones] = useState([]);
+    const [saldos, setSaldos] = useState([]);
+    const [empleados, setEmpleados] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [showModal, setShowModal] = useState(false);
+    const [showRejectModal, setShowRejectModal] = useState(false);
+    const [activeTab, setActiveTab] = useState('solicitudes');
+    const [solicitudToReject, setSolicitudToReject] = useState(null);
+    const [motivoRechazo, setMotivoRechazo] = useState('');
+
+    // Form data
+    const [formData, setFormData] = useState({
+        empleadoId: '',
+        fechaInicio: new Date().toISOString().split('T')[0],
+        fechaFin: new Date().toISOString().split('T')[0],
+        observaciones: ''
+    });
+
+    useEffect(() => {
+        fetchVacaciones();
+        fetchEmpleados();
+    }, []);
+
+    useEffect(() => {
+        if (activeTab === 'saldos') {
+            fetchSaldos();
+        }
+    }, [activeTab]);
+
+    const fetchVacaciones = async () => {
+        try {
+            setLoading(true);
+            const response = await fetch('/api/vacaciones');
+            if (!response.ok) throw new Error(`Error ${response.status}`);
+            const data = await response.json();
+            setVacaciones(data);
+        } catch (err) {
+            showToast({ type: 'error', message: `Error al cargar vacaciones: ${err.message}` });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchSaldos = async () => {
+        try {
+            const saldosPromises = empleados.map(emp =>
+                fetch(`/api/vacaciones/saldo/${emp.id}`).then(r => r.ok ? r.json() : null)
+            );
+            const saldosData = await Promise.all(saldosPromises);
+            setSaldos(saldosData.filter(s => s !== null));
+        } catch (err) {
+            showToast({ type: 'error', message: `Error al cargar saldos: ${err.message}` });
+        }
+    };
+
+    const fetchEmpleados = async () => {
+        try {
+            const response = await fetch('/api/empleados');
+            if (!response.ok) throw new Error(`Error ${response.status}`);
+            const data = await response.json();
+            setEmpleados(data.filter(e => e.estaActivo));
+        } catch (err) {
+            showToast({ type: 'error', message: `Error al cargar empleados: ${err.message}` });
+        }
+    };
+
+    // Calculate stats
+    const pendientes = vacaciones.filter(v => v.estado === 1).length; // Pendiente
+    const enCurso = vacaciones.filter(v => v.estado === 3).length; // EnCurso
+    const diasOtorgados = vacaciones
+        .filter(v => v.estado === 2 || v.estado === 3 || v.estado === 4) // Aprobada, EnCurso, Completada
+        .reduce((sum, v) => sum + v.diasVacaciones, 0);
+
+    const today = new Date();
+    const proximas = vacaciones.filter(v => {
+        if (v.estado !== 2) return false; // Solo aprobadas
+        const inicio = new Date(v.fechaInicio);
+        const diffDays = Math.ceil((inicio - today) / (1000 * 60 * 60 * 24));
+        return diffDays >= 0 && diffDays <= 30;
+    }).length;
+
+    const getEstadoNombre = (estado) => {
+        const estados = {
+            1: 'Pendiente',
+            2: 'Aprobada',
+            3: 'En Curso',
+            4: 'Completada',
+            5: 'Cancelada',
+            6: 'Rechazada'
+        };
+        return estados[estado] || 'Desconocido';
+    };
+
+    const getEstadoColor = (estado) => {
+        const colores = {
+            1: 'bg-yellow-100 text-yellow-800',
+            2: 'bg-green-100 text-green-800',
+            3: 'bg-blue-100 text-blue-800',
+            4: 'bg-gray-100 text-gray-800',
+            5: 'bg-gray-100 text-gray-600',
+            6: 'bg-red-100 text-red-800'
+        };
+        return colores[estado] || 'bg-gray-100 text-gray-800';
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        try {
+            const payload = {
+                empleadoId: parseInt(formData.empleadoId),
+                fechaInicio: formData.fechaInicio,
+                fechaFin: formData.fechaFin,
+                observaciones: formData.observaciones || null
+            };
+
+            const response = await fetch('/api/vacaciones', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'Error al crear solicitud');
+            }
+
+            await fetchVacaciones();
+            showToast({ type: 'success', message: 'Solicitud de vacaciones creada' });
+            resetForm();
+        } catch (err) {
+            showToast({ type: 'error', message: `Error: ${err.message}` });
+        }
+    };
+
+    const handleAprobar = async (id) => {
+        try {
+            const response = await fetch(`/api/vacaciones/${id}/aprobar`, { method: 'POST' });
+            if (!response.ok) throw new Error('Error al aprobar');
+            await fetchVacaciones();
+            showToast({ type: 'success', message: 'Solicitud aprobada' });
+        } catch (err) {
+            showToast({ type: 'error', message: err.message });
+        }
+    };
+
+    const openRejectModal = (vacacion) => {
+        setSolicitudToReject(vacacion);
+        setMotivoRechazo('');
+        setShowRejectModal(true);
+    };
+
+    const handleRechazar = async () => {
+        if (!motivoRechazo.trim()) {
+            showToast({ type: 'error', message: 'Debe especificar el motivo del rechazo' });
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/vacaciones/${solicitudToReject.id}/rechazar`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ motivo: motivoRechazo })
+            });
+
+            if (!response.ok) throw new Error('Error al rechazar');
+            await fetchVacaciones();
+            showToast({ type: 'success', message: 'Solicitud rechazada' });
+            setShowRejectModal(false);
+            setSolicitudToReject(null);
+            setMotivoRechazo('');
+        } catch (err) {
+            showToast({ type: 'error', message: err.message });
+        }
+    };
+
+    const handleCancelar = async (id) => {
+        if (!window.confirm('¿Está seguro de cancelar esta solicitud?')) return;
+
+        try {
+            const response = await fetch(`/api/vacaciones/${id}/cancelar`, { method: 'DELETE' });
+            if (!response.ok) throw new Error('Error al cancelar');
+            await fetchVacaciones();
+            showToast({ type: 'success', message: 'Solicitud cancelada' });
+        } catch (err) {
+            showToast({ type: 'error', message: err.message });
+        }
+    };
+
+    const resetForm = () => {
+        setShowModal(false);
+        setFormData({
+            empleadoId: '',
+            fechaInicio: new Date().toISOString().split('T')[0],
+            fechaFin: new Date().toISOString().split('T')[0],
+            observaciones: ''
+        });
+    };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-96">
+                <div className="text-center">
+                    <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-gray-600">Cargando vacaciones...</p>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-6">
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-medium text-gray-600">Pendientes</p>
+                            <p className="text-3xl font-bold text-gray-900 mt-2">{pendientes}</p>
+                        </div>
+                        <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                            <svg className="w-6 h-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-medium text-gray-600">En Curso</p>
+                            <p className="text-3xl font-bold text-gray-900 mt-2">{enCurso}</p>
+                        </div>
+                        <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-medium text-gray-600">Días Otorgados</p>
+                            <p className="text-3xl font-bold text-gray-900 mt-2">{diasOtorgados}</p>
+                        </div>
+                        <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                            <svg className="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-medium text-gray-600">Próximas (30 días)</p>
+                            <p className="text-3xl font-bold text-gray-900 mt-2">{proximas}</p>
+                        </div>
+                        <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <svg className="w-6 h-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Tabs */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="border-b border-gray-200">
+                    <div className="flex gap-4 px-6">
+                        <button
+                            onClick={() => setActiveTab('solicitudes')}
+                            className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors ${
+                                activeTab === 'solicitudes'
+                                    ? 'border-blue-600 text-blue-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                            }`}
+                        >
+                            Solicitudes
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('calendario')}
+                            className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors ${
+                                activeTab === 'calendario'
+                                    ? 'border-blue-600 text-blue-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                            }`}
+                        >
+                            Calendario
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('saldos')}
+                            className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors ${
+                                activeTab === 'saldos'
+                                    ? 'border-blue-600 text-blue-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                            }`}
+                        >
+                            Saldos
+                        </button>
+                        <div className="flex-1"></div>
+                        <div className="flex items-center">
+                            <button
+                                onClick={() => setShowModal(true)}
+                                className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm my-2"
+                            >
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                </svg>
+                                Nueva Solicitud
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Tab: Solicitudes */}
+                {activeTab === 'solicitudes' && (
+                    <div className="p-6">
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead className="bg-gray-50 border-b border-gray-200">
+                                    <tr>
+                                        <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">Empleado</th>
+                                        <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">Período</th>
+                                        <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">Días</th>
+                                        <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">Solicitado</th>
+                                        <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">Estado</th>
+                                        <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {vacaciones.map((vac) => (
+                                        <tr key={vac.id} className="hover:bg-gray-50 transition-colors">
+                                            <td className="py-4 px-4 text-sm text-gray-900">{vac.empleadoNombre}</td>
+                                            <td className="py-4 px-4 text-sm text-gray-500">
+                                                {new Date(vac.fechaInicio).toLocaleDateString('es-PA', { day: '2-digit', month: 'short' })} - {new Date(vac.fechaFin).toLocaleDateString('es-PA', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                            </td>
+                                            <td className="py-4 px-4 text-sm font-medium text-gray-900">{vac.diasVacaciones}</td>
+                                            <td className="py-4 px-4 text-sm text-gray-500">
+                                                {new Date(vac.fechaSolicitud).toLocaleDateString('es-PA', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                            </td>
+                                            <td className="py-4 px-4">
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getEstadoColor(vac.estado)}`}>
+                                                    {vac.estadoNombre}
+                                                </span>
+                                            </td>
+                                            <td className="py-4 px-4">
+                                                <div className="flex items-center gap-2">
+                                                    {vac.estado === 1 && (
+                                                        <>
+                                                            <button
+                                                                onClick={() => handleAprobar(vac.id)}
+                                                                className="inline-flex items-center gap-1 text-green-600 hover:text-green-800 font-medium text-sm"
+                                                            >
+                                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                                </svg>
+                                                                Aprobar
+                                                            </button>
+                                                            <button
+                                                                onClick={() => openRejectModal(vac)}
+                                                                className="inline-flex items-center gap-1 text-red-600 hover:text-red-800 font-medium text-sm"
+                                                            >
+                                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                                </svg>
+                                                                Rechazar
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                    {(vac.estado === 1 || vac.estado === 2) && (
+                                                        <button
+                                                            onClick={() => handleCancelar(vac.id)}
+                                                            className="inline-flex items-center gap-1 text-gray-600 hover:text-gray-800 font-medium text-sm"
+                                                        >
+                                                            Cancelar
+                                                        </button>
+                                                    )}
+                                                    {vac.aprobadoPor && (
+                                                        <span className="text-xs text-gray-500">
+                                                            Por {vac.aprobadoPor}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+
+                            {vacaciones.length === 0 && (
+                                <div className="text-center py-12">
+                                    <h3 className="text-lg font-medium text-gray-900 mb-1">
+                                        No hay solicitudes de vacaciones
+                                    </h3>
+                                    <p className="text-gray-500">Comienza creando una nueva solicitud</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Tab: Calendario */}
+                {activeTab === 'calendario' && (
+                    <div className="p-6">
+                        <div className="space-y-4">
+                            {vacaciones
+                                .filter(v => v.estado === 2 || v.estado === 3)
+                                .map((vac) => (
+                                    <div key={vac.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                                        <div className="flex items-start justify-between">
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <div className="w-3 h-3 rounded-full bg-blue-600"></div>
+                                                    <h4 className="font-medium text-gray-900">{vac.empleadoNombre}</h4>
+                                                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getEstadoColor(vac.estado)}`}>
+                                                        {vac.estadoNombre}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-4 text-sm text-gray-600">
+                                                    <div className="flex items-center gap-1">
+                                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                        </svg>
+                                                        {new Date(vac.fechaInicio).toLocaleDateString('es-PA')} - {new Date(vac.fechaFin).toLocaleDateString('es-PA')}
+                                                    </div>
+                                                    <div className="flex items-center gap-1">
+                                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                        {vac.diasVacaciones} días
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+
+                            {vacaciones.filter(v => v.estado === 2 || v.estado === 3).length === 0 && (
+                                <div className="text-center py-12">
+                                    <h3 className="text-lg font-medium text-gray-900 mb-1">
+                                        No hay vacaciones activas
+                                    </h3>
+                                    <p className="text-gray-500">Las vacaciones aprobadas y en curso aparecerán aquí</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Tab: Saldos */}
+                {activeTab === 'saldos' && (
+                    <div className="p-6">
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead className="bg-gray-50 border-b border-gray-200">
+                                    <tr>
+                                        <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">Empleado</th>
+                                        <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">Acumulados</th>
+                                        <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">Tomados</th>
+                                        <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">Disponibles</th>
+                                        <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">Progreso</th>
+                                        <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase">Período</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {saldos.map((saldo) => {
+                                        const porcentajeUsado = saldo.diasAcumulados > 0
+                                            ? (saldo.diasTomados / saldo.diasAcumulados) * 100
+                                            : 0;
+
+                                        return (
+                                            <tr key={saldo.empleadoId} className="hover:bg-gray-50 transition-colors">
+                                                <td className="py-4 px-4 text-sm text-gray-900">{saldo.empleadoNombre}</td>
+                                                <td className="py-4 px-4 text-sm font-medium text-gray-900">{saldo.diasAcumulados.toFixed(1)}</td>
+                                                <td className="py-4 px-4 text-sm text-gray-600">{saldo.diasTomados.toFixed(1)}</td>
+                                                <td className="py-4 px-4 text-sm font-bold text-green-600">{saldo.diasDisponibles.toFixed(1)}</td>
+                                                <td className="py-4 px-4">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="flex-1 bg-gray-200 rounded-full h-2 w-24">
+                                                            <div
+                                                                className={`h-2 rounded-full ${
+                                                                    porcentajeUsado >= 80 ? 'bg-red-600' :
+                                                                    porcentajeUsado >= 50 ? 'bg-yellow-600' :
+                                                                    'bg-green-600'
+                                                                }`}
+                                                                style={{ width: `${Math.min(porcentajeUsado, 100)}%` }}
+                                                            ></div>
+                                                        </div>
+                                                        <span className="text-xs text-gray-600">{porcentajeUsado.toFixed(0)}%</span>
+                                                    </div>
+                                                </td>
+                                                <td className="py-4 px-4 text-sm text-gray-500">
+                                                    {new Date(saldo.periodoInicio).getFullYear()}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+
+                            {saldos.length === 0 && (
+                                <div className="text-center py-12">
+                                    <h3 className="text-lg font-medium text-gray-900 mb-1">
+                                        No hay saldos disponibles
+                                    </h3>
+                                    <p className="text-gray-500">Los saldos se crean al registrar la primera solicitud</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Modal Nueva Solicitud */}
+            {showModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
+                            <h3 className="text-xl font-semibold text-gray-900">Nueva Solicitud de Vacaciones</h3>
+                            <button
+                                onClick={resetForm}
+                                className="text-gray-400 hover:text-gray-600 transition-colors"
+                            >
+                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="p-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Empleado <span className="text-red-500">*</span>
+                                    </label>
+                                    <select
+                                        required
+                                        value={formData.empleadoId}
+                                        onChange={(e) => setFormData({ ...formData, empleadoId: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    >
+                                        <option value="">Seleccionar empleado...</option>
+                                        {empleados.map(emp => (
+                                            <option key={emp.id} value={emp.id}>
+                                                {emp.nombre} {emp.apellido} - {emp.posicionNombre || 'Sin posición'}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Fecha Inicio <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="date"
+                                        required
+                                        value={formData.fechaInicio}
+                                        onChange={(e) => setFormData({ ...formData, fechaInicio: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Fecha Fin <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="date"
+                                        required
+                                        value={formData.fechaFin}
+                                        onChange={(e) => setFormData({ ...formData, fechaFin: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Observaciones
+                                    </label>
+                                    <textarea
+                                        value={formData.observaciones}
+                                        onChange={(e) => setFormData({ ...formData, observaciones: e.target.value })}
+                                        rows="3"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        placeholder="Observaciones adicionales..."
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                                <button
+                                    type="button"
+                                    onClick={resetForm}
+                                    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-sm"
+                                >
+                                    Crear Solicitud
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal Rechazar */}
+            {showRejectModal && solicitudToReject && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+                        <div className="px-6 py-4 border-b border-gray-200">
+                            <h3 className="text-xl font-semibold text-gray-900">Rechazar Solicitud</h3>
+                        </div>
+
+                        <div className="p-6">
+                            <p className="text-gray-600 mb-4">
+                                ¿Está seguro de rechazar la solicitud de <strong>{solicitudToReject.empleadoNombre}</strong>?
+                            </p>
+
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Motivo del Rechazo <span className="text-red-500">*</span>
+                            </label>
+                            <textarea
+                                required
+                                value={motivoRechazo}
+                                onChange={(e) => setMotivoRechazo(e.target.value)}
+                                rows="3"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="Especifique el motivo del rechazo..."
+                            />
+                        </div>
+
+                        <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+                            <button
+                                onClick={() => {
+                                    setShowRejectModal(false);
+                                    setSolicitudToReject(null);
+                                    setMotivoRechazo('');
+                                }}
+                                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={handleRechazar}
+                                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+                            >
+                                Rechazar Solicitud
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+export default VacacionesPage;

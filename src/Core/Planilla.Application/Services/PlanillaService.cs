@@ -1,4 +1,11 @@
-﻿using Planilla.Application.Interfaces;
+﻿// ====================================================================
+// Planilla - PlanillaService
+// Creado: 2025-12-27
+// Descripción: Servicio de lógica de negocio para operaciones de planilla
+// Integra cálculos de deducciones adicionales (préstamos, deducciones fijas, anticipos)
+// ====================================================================
+
+using Planilla.Application.Interfaces;
 using Planilla.Domain.Entities;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -8,18 +15,24 @@ namespace Planilla.Application.Services
     /// <summary>
     /// Proporciona la lógica de negocio central para las operaciones de la planilla.
     /// Orquesta el uso de repositorios a través de la Unidad de Trabajo para ejecutar los casos de uso.
+    /// Integra cálculos de deducciones adicionales con el sistema de planilla.
     /// </summary>
     public class PlanillaService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly PayrollCalculationOrchestratorPortable _orchestrator;
 
         /// <summary>
         /// Inicializa una nueva instancia de la clase <see cref="PlanillaService"/>.
         /// </summary>
         /// <param name="unitOfWork">La unidad de trabajo que proporciona acceso a los repositorios.</param>
-        public PlanillaService(IUnitOfWork unitOfWork)
+        /// <param name="orchestrator">Orchestrador de cálculo de planilla</param>
+        public PlanillaService(
+            IUnitOfWork unitOfWork,
+            PayrollCalculationOrchestratorPortable orchestrator)
         {
             _unitOfWork = unitOfWork;
+            _orchestrator = orchestrator;
         }
 
         /// <summary>

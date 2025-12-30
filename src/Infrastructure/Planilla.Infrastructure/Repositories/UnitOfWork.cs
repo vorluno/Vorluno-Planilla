@@ -1,5 +1,7 @@
 ﻿using Planilla.Application.Interfaces;
 using Planilla.Infrastructure.Data;
+using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Planilla.Infrastructure.Repositories
@@ -10,6 +12,7 @@ namespace Planilla.Infrastructure.Repositories
     public class UnitOfWork : IUnitOfWork
     {
         private readonly ApplicationDbContext _context;
+        private readonly Dictionary<Type, object> _repositories = new();
 
         /// <inheritdoc />
         public IEmpleadoRepository Empleados { get; private set; }
@@ -27,6 +30,19 @@ namespace Planilla.Infrastructure.Repositories
             Empleados = new EmpleadoRepository(_context);
 
             // Aquí se inicializarían otros repositorios, como RecibosDeSueldoRepository
+        }
+
+        /// <inheritdoc />
+        public IRepository<T> Repository<T>() where T : class
+        {
+            var type = typeof(T);
+
+            if (!_repositories.ContainsKey(type))
+            {
+                _repositories[type] = new Repository<T>(_context);
+            }
+
+            return (IRepository<T>)_repositories[type];
         }
 
         /// <inheritdoc />

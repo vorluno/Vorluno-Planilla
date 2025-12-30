@@ -5,6 +5,7 @@ namespace Planilla.Application.Interfaces
 {
     /// <summary>
     /// Define un contrato genérico para el patrón de repositorio, abstrayendo las operaciones de persistencia de datos.
+    /// NOTA: Este es el contrato básico. Para operaciones avanzadas (includes, filtros), use la implementación concreta Repository<T>.
     /// </summary>
     /// <typeparam name="T">El tipo de la entidad para la cual este repositorio opera. Debe ser una clase.</typeparam>
     public interface IRepository<T> where T : class
@@ -33,7 +34,7 @@ namespace Planilla.Application.Interfaces
         /// Marca una entidad existente como modificada.
         /// </summary>
         /// <remarks>
-        /// Esta operación solo marca el estado de la entidad en el rastreador de cambios. 
+        /// Esta operación solo marca el estado de la entidad en el rastreador de cambios.
         /// Los cambios se persistirán en la base de datos al llamar a CompleteAsync() en la Unidad de Trabajo.
         /// </remarks>
         /// <param name="entity">La entidad a actualizar.</param>

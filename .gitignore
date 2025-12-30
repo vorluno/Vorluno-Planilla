@@ -19,3 +19,11 @@ dist/
 # Secrets
 appsettings.Development.json
 appsettings.*.local.json
+
+# IDE
+.vscode/
+.claude/
+
+# Windows artifacts
+nul
+Thumbs.db

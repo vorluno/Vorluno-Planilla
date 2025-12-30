@@ -1,8 +1,6 @@
-using Microsoft.AspNetCore.Components.Authorization;
+// RISK: Removing Blazor components - converting to Web API + React SPA architecture
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Planilla.Web.Components;
-using Planilla.Web.Components.Account;
 using Planilla.Infrastructure.Data;
 using Planilla.Domain.Entities;
 using Planilla.Web.Extensions;
@@ -35,27 +33,67 @@ builder.Services.AddIdentity<AppUser, IdentityRole>(options => {
 // 4. <<<---  AUTOMAPPER ---<<<
 builder.Services.AddAutoMapper(typeof(MappingProfile).Assembly);
 
-// 5. REGISTRAR SERVICIOS DE LA APLICACI�N (UnitOfWork, etc.)
+// 5. CONFIGURAR AUTHORIZATION POLICIES (Phase E)
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy("CanCalculatePayroll", p => p.RequireRole("PayrollOperator", "PayrollAdmin", "FinanceManager"))
+    .AddPolicy("CanApprovePayroll", p => p.RequireRole("PayrollAdmin", "FinanceManager"))
+    .AddPolicy("CanPayPayroll", p => p.RequireRole("FinanceManager"))
+    .AddPolicy("CanCancelPayroll", p => p.RequireRole("PayrollAdmin", "FinanceManager"));
+
+// 6. REGISTRAR SERVICIOS DE LA APLICACI�N (UnitOfWork, etc.)
 builder.Services.ConfigureApplicationServices();
+
+// 7. REGISTRAR HTTPCONTEXTACCESSOR (Phase E - para CurrentUserService)
+builder.Services.AddHttpContextAccessor();
 
 // --- FIN DE NUESTRA CONFIGURACI�N PRINCIPAL ---
 
 
-// Servicios est�ndar de Blazor y de la plantilla de Identity
-builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
-
-builder.Services.AddControllers();
+// RISK: Removing Blazor services - Web API + Identity backend only
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // Configurar para ignorar ciclos de referencia en serialización JSON
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+        // Opcional: usar naming policy camelCase para consistencia con frontend
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddCascadingAuthenticationState();
-builder.Services.AddScoped<IdentityUserAccessor>();
-builder.Services.AddScoped<IdentityRedirectManager>();
-builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
-builder.Services.AddSingleton<IEmailSender<AppUser>, IdentityNoOpEmailSender>();
+// RISK: Creating inline no-op email sender since Blazor Components.Account was removed
+builder.Services.AddSingleton<IEmailSender<AppUser>>(provider => 
+    new NoOpEmailSender());
+
+// TODO: React will handle authentication UI - backend provides Identity API endpoints
 
 var app = builder.Build();
+
+// --- MIGRACIONES Y SEEDING ---
+// Aplicar migraciones pendientes y ejecutar seed de configuración
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var logger = services.GetRequiredService<ILogger<Program>>();
+
+    try
+    {
+        var context = services.GetRequiredService<ApplicationDbContext>();
+
+        logger.LogInformation("Aplicando migraciones pendientes...");
+        await context.Database.MigrateAsync();
+        logger.LogInformation("Migraciones aplicadas correctamente");
+
+        logger.LogInformation("Ejecutando seed de configuración...");
+        await PayrollConfigSeeder.SeedAsync(context, logger);
+        logger.LogInformation("Seed de configuración completado");
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Error durante migraciones o seeding");
+        throw;
+    }
+}
 
 // --- CONFIGURACI�N DEL PIPELINE DE PETICIONES HTTP (MIDDLEWARE) ---
 // El orden aqu� es importante.
@@ -75,22 +113,26 @@ else
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles(); // Permite servir archivos est�ticos como CSS, JS e im�genes desde la carpeta wwwroot.
-app.UseAntiforgery(); // Middleware de seguridad contra ataques CSRF.
+app.UseStaticFiles(); // Serves static files including React SPA from wwwroot
+app.UseRouting();
 
-// Activa la autorizaci�n para que los atributos [Authorize] en los controladores funcionen.
+// RISK: Removing UseAntiforgery - React SPA will handle CSRF via API tokens
+app.UseAuthentication(); // Must come before UseAuthorization
 app.UseAuthorization();
 
-// Mapea los componentes de la aplicaci�n y los endpoints de Identity.
-app.MapStaticAssets();
-app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
-
-// Add additional endpoints required by the Identity /Account Razor components.
-app.MapAdditionalIdentityEndpoints();
-
-// <<<---  PARA ACTIVAR LOS CONTROLADORES DE API ---<<<
+// API Controllers for React SPA
 app.MapControllers();
+
+// SPA fallback - serve React app for client-side routing
+app.MapFallbackToFile("/react/index.html");
 
 // Inicia y ejecuta la aplicaci�n.
 app.Run();
+
+// RISK: Inline NoOp email sender replacement for removed Blazor Components.Account
+public class NoOpEmailSender : IEmailSender<AppUser>
+{
+    public Task SendConfirmationLinkAsync(AppUser user, string email, string confirmationLink) => Task.CompletedTask;
+    public Task SendPasswordResetLinkAsync(AppUser user, string email, string resetLink) => Task.CompletedTask;
+    public Task SendPasswordResetCodeAsync(AppUser user, string email, string resetCode) => Task.CompletedTask;
+}

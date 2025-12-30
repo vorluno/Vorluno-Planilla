@@ -12,7 +12,11 @@ namespace Planilla.Application.DTOs
         string NumeroIdentificacion,
         decimal SalarioBase,
         DateTime FechaContratacion,
-        bool EstaActivo
+        bool EstaActivo,
+        int? DepartamentoId,
+        string? DepartamentoNombre,
+        int? PosicionId,
+        string? PosicionNombre
     );
 
     /// <summary>
@@ -32,7 +36,11 @@ namespace Planilla.Application.DTOs
         string NumeroIdentificacion,
 
         [Range(0.01, double.MaxValue)]
-        decimal SalarioBase
+        decimal SalarioBase,
+
+        int? DepartamentoId,
+
+        int? PosicionId
     );
 
     /// <summary>
@@ -50,6 +58,10 @@ namespace Planilla.Application.DTOs
         [Range(0.01, double.MaxValue)]
         decimal SalarioBase,
 
-        bool EstaActivo
+        bool EstaActivo,
+
+        int? DepartamentoId,
+
+        int? PosicionId
     );
 }
